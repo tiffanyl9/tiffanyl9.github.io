@@ -7,7 +7,13 @@ const SHELL = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // 'reload' skips the browser's ordinary HTTP cache, so a fresh install really does
+  // fetch the current files rather than whatever was cached up to ten minutes ago.
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', e => {
@@ -21,9 +27,11 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
-  // Network first so edits show up while you're developing; cache is the offline fallback.
+  // Network first so edits show up promptly; cache is the offline fallback. GitHub Pages
+  // sends a ~10 minute max-age, so ask the server to revalidate rather than letting the
+  // browser hand back a stale copy — otherwise "network first" quietly means "cache first".
   e.respondWith(
-    fetch(req)
+    fetch(new Request(req.url, { cache: 'no-cache', credentials: 'same-origin' }))
       .then(res => {
         const copy = res.clone();
         caches.open(CACHE).then(c => c.put(req, copy));

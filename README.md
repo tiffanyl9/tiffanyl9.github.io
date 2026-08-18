@@ -34,8 +34,12 @@ From this folder:
     git commit -m "what changed"
     git push
 
-GitHub Pages redeploys in a minute or so. On the phone, close the app fully (swipe it away
+GitHub Pages redeploys in a minute or two. On the phone, close the app fully (swipe it away
 from the app switcher) and reopen it to pick up the new version.
+
+If an update doesn't seem to land, that's usually GitHub's ten-minute browser cache. The
+service worker asks the server to revalidate specifically to avoid this, but `sw.js` itself
+is fetched normally, so a change to the worker can take a few extra minutes to take hold.
 
 ## Testing on the Mac before you publish
 
