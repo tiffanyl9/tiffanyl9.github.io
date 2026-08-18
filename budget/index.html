@@ -44,14 +44,31 @@
         <label for="exCat">Category</label>
         <select id="exCat" required></select>
       </div>
-      <div class="field">
+      <div class="field notefield">
         <label for="exNote">Note <span class="muted">(optional)</span></label>
-        <input id="exNote" type="text" placeholder="Coffee with Sam" autocomplete="off">
+        <input id="exNote" type="text" placeholder="Coffee with Sam" autocomplete="off"
+               autocorrect="off" autocapitalize="sentences" spellcheck="false">
+        <ul class="suggest" id="noteSuggest" hidden></ul>
       </div>
       <button type="submit" class="primary">Add expense</button>
     </form>
 
-    <h2 class="sectiontitle">This month <span class="count" id="txCount"></span></h2>
+    <h2 class="sectiontitle"><span id="txHeading">This month</span> <span class="count" id="txCount"></span></h2>
+
+    <div class="searchbar">
+      <div class="searchwrap">
+        <span class="searchico">⌕</span>
+        <input id="txSearch" type="text" placeholder="Search notes" autocomplete="off"
+               autocorrect="off" autocapitalize="none" spellcheck="false">
+        <button type="button" class="clearbtn" id="txClear" hidden aria-label="Clear search">×</button>
+      </div>
+      <div class="chips" id="catChips"></div>
+      <div class="scoperow" id="scopeRow" hidden>
+        <button type="button" class="scopebtn is-on" data-scope="month">This month</button>
+        <button type="button" class="scopebtn" data-scope="all">All months</button>
+      </div>
+    </div>
+
     <ul class="txlist" id="txList"></ul>
   </section>
 
@@ -114,6 +131,25 @@
   <button class="tab" data-view="budget"><span class="ico">◔</span>Budget</button>
   <button class="tab" data-view="summary"><span class="ico">▤</span>Summary</button>
 </nav>
+
+<div class="modal" id="catModal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="catModalTitle">
+    <h3 id="catModalTitle">Edit category</h3>
+    <div class="field">
+      <label for="edName">Name</label>
+      <input id="edName" type="text" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="edBudget">Monthly budget</label>
+      <div class="amountwrap">
+        <span class="cur" id="edCurSign">$</span>
+        <input id="edBudget" type="text" inputmode="decimal" autocomplete="off">
+      </div>
+    </div>
+    <button class="primary" id="edSave">Save changes</button>
+    <button class="ghost" id="edCancel" style="width:100%;margin-top:8px">Cancel</button>
+  </div>
+</div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 

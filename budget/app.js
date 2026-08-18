@@ -88,6 +88,74 @@
 
   const level = ratio => (ratio > 1 ? 'over' : ratio >= 0.85 ? 'warn' : '');
 
+  // ── usage ranking ──
+  // Things you use often, and recently, should come first. Every past use is worth a
+  // point that decays by half every three weeks, so last month's habits outrank a
+  // category you leaned on in the spring and haven't touched since.
+  const HALF_LIFE_DAYS = 21;
+  const recencyWeight = dateIso => {
+    const days = Math.max(0, (Date.now() - new Date(dateIso + 'T00:00:00').getTime()) / 86400000);
+    return Math.pow(0.5, days / HALF_LIFE_DAYS);
+  };
+
+  function categoriesByUse() {
+    const score = new Map();
+    for (const e of state.expenses)
+      score.set(e.categoryId, (score.get(e.categoryId) || 0) + recencyWeight(e.date));
+    // Categories you've never used keep their original order, below the ones you have.
+    return state.categories
+      .map((c, i) => ({ c, i, s: score.get(c.id) || 0 }))
+      .sort((a, b) => (b.s - a.s) || (a.i - b.i))
+      .map(x => x.c);
+  }
+
+  // Notes you've written before, ranked the same way, weighted heavily toward the
+  // category currently selected — picking "Groceries" should suggest your shops.
+  function noteSuggestions(query, categoryId, limit = 6) {
+    const q = query.trim().toLowerCase();
+    const seen = new Map();
+    for (const e of state.expenses) {
+      const note = (e.note || '').trim();
+      if (!note) continue;
+      const key = note.toLowerCase();
+      if (q && !key.includes(q)) continue;
+      let rec = seen.get(key);
+      if (!rec) { rec = { note, score: 0, cats: new Map() }; seen.set(key, rec); }
+      let w = recencyWeight(e.date);
+      if (e.categoryId === categoryId) w *= 3;      // same category, far likelier
+      if (q && key.startsWith(q)) w *= 1.5;         // a prefix match beats mid-word
+      rec.score += w;
+      rec.cats.set(e.categoryId, (rec.cats.get(e.categoryId) || 0) + 1);
+    }
+    return [...seen.values()]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+      .map(r => {
+        let top = null, n = -1;
+        for (const [cid, count] of r.cats) if (count > n) { n = count; top = cid; }
+        const cat = catById(top);
+        return { note: r.note, cat: cat ? cat.name : '' };
+      });
+  }
+
+  // ── search / tag filter ──
+  const filter = { text: '', catId: null, allMonths: false };
+  const filterActive = () => !!(filter.text.trim() || filter.catId);
+
+  function filteredExpenses() {
+    const q = filter.text.trim().toLowerCase();
+    const base = (filterActive() && filter.allMonths) ? state.expenses : expensesIn(month);
+    return base.filter(e => {
+      if (filter.catId && e.categoryId !== filter.catId) return false;
+      if (q) {
+        const cat = catById(e.categoryId);
+        const hay = ((e.note || '') + ' ' + (cat ? cat.name : '')).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
   function parseAmount(raw) {
     const n = Number(String(raw).replace(/[^0-9.\-]/g, ''));
     return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
@@ -108,6 +176,7 @@
     $('monthLabel').textContent = monthName(month);
     renderCatOptions();
     renderTx();
+    renderChips();
     renderBudget();
     renderSummary();
   }
@@ -122,7 +191,7 @@
       return;
     }
     sel.disabled = false;
-    for (const c of state.categories) {
+    for (const c of categoriesByUse()) {
       const o = el('option', null, c.name);
       o.value = c.id;
       sel.appendChild(o);
@@ -133,15 +202,26 @@
   function renderTx() {
     const list = $('txList');
     list.innerHTML = '';
-    const rows = expensesIn(month).slice().sort((a, b) =>
+    const active = filterActive();
+    const spanning = active && filter.allMonths;
+
+    const rows = filteredExpenses().slice().sort((a, b) =>
       a.date === b.date ? b.id.localeCompare(a.id) : b.date.localeCompare(a.date));
 
-    $('txCount').textContent = rows.length ? `${rows.length} · ${fmt(totalSpent(month))}` : '';
+    $('txHeading').textContent = !active ? 'This month'
+      : spanning ? 'Matches, all months' : 'Matches this month';
+    $('scopeRow').hidden = !active;
+    $('txClear').hidden = !filter.text;
+
+    const sum = rows.reduce((t, e) => t + e.amount, 0);
+    $('txCount').textContent = rows.length ? `${rows.length} · ${fmt(sum)}` : '';
 
     if (!rows.length) {
       const li = el('li');
       li.style.cssText = 'display:block;background:none;border:0;box-shadow:none;padding:0';
-      li.appendChild(el('div', 'empty', 'No expenses logged this month yet.'));
+      li.appendChild(el('div', 'empty', active
+        ? (spanning ? 'Nothing matches that.' : 'Nothing matches this month — try All months.')
+        : 'No expenses logged this month yet.'));
       list.appendChild(li);
       return;
     }
@@ -151,8 +231,9 @@
       const main = el('div', 'tx-main');
       const cat = catById(e.categoryId);
       main.appendChild(el('div', 'tx-note', e.note || (cat ? cat.name : 'Uncategorised')));
-      const when = new Date(e.date + 'T00:00:00')
-        .toLocaleDateString(LOCALE, { month: 'short', day: 'numeric' });
+      const when = new Date(e.date + 'T00:00:00').toLocaleDateString(LOCALE,
+        spanning ? { month: 'short', day: 'numeric', year: 'numeric' }
+                 : { month: 'short', day: 'numeric' });
       main.appendChild(el('div', 'tx-meta', `${cat ? cat.name : 'Uncategorised'} · ${when}`));
       li.appendChild(main);
       li.appendChild(el('div', 'tx-amt', fmt(e.amount)));
@@ -165,6 +246,41 @@
       };
       li.appendChild(del);
       list.appendChild(li);
+    }
+  }
+
+  function renderChips() {
+    const wrap = $('catChips');
+    wrap.innerHTML = '';
+    const pool = (filterActive() && filter.allMonths) ? state.expenses : expensesIn(month);
+    const q = filter.text.trim().toLowerCase();
+
+    const countFor = catId => pool.filter(e => {
+      if (catId && e.categoryId !== catId) return false;
+      if (q) {
+        const cat = catById(e.categoryId);
+        return ((e.note || '') + ' ' + (cat ? cat.name : '')).toLowerCase().includes(q);
+      }
+      return true;
+    }).length;
+
+    const chip = (label, catId, n) => {
+      const b = el('button', 'chip' + (filter.catId === catId ? ' is-on' : ''));
+      b.type = 'button';
+      b.appendChild(document.createTextNode(label));
+      if (n != null) b.appendChild(el('span', 'n', String(n)));
+      b.onclick = () => {
+        filter.catId = (filter.catId === catId) ? null : catId;   // tap again to clear
+        renderTx(); renderChips();
+      };
+      wrap.appendChild(b);
+    };
+
+    chip('All', null, countFor(null));
+    for (const c of categoriesByUse()) {
+      const n = countFor(c.id);
+      if (n === 0 && filter.catId !== c.id) continue;   // hide tags with nothing to show
+      chip(c.name, c.id, n);
     }
   }
 
@@ -232,14 +348,34 @@
     }
   }
 
+  // Name and budget together in one sheet — no more answering two questions in a row.
+  let editing = null;
+
   function editCategory(c) {
-    const name = prompt('Category name', c.name);
-    if (name === null) return;
-    const b = prompt(`Monthly budget for ${name.trim() || c.name}`, String(c.budget));
-    if (b === null) return;
-    const amt = parseAmount(b);
-    if (name.trim()) c.name = name.trim();
-    if (amt !== null) c.budget = amt;
+    editing = c;
+    $('edCurSign').textContent = currencySign;
+    $('edName').value = c.name;
+    $('edBudget').value = String(c.budget);
+    $('catModal').hidden = false;
+    setTimeout(() => { $('edName').focus(); $('edName').select(); }, 60);
+  }
+
+  function closeEditor() {
+    $('catModal').hidden = true;
+    editing = null;
+  }
+
+  function saveEditor() {
+    if (!editing) return;
+    const name = $('edName').value.trim();
+    const budget = parseAmount($('edBudget').value);
+    if (!name) return toast('Give the category a name');
+    if (budget === null) return toast('Enter a budget above zero');
+    if (state.categories.some(c => c !== editing && c.name.toLowerCase() === name.toLowerCase()))
+      return toast('Another category already has that name');
+    editing.name = name;
+    editing.budget = budget;
+    closeEditor();
     save(); render(); toast('Category updated');
   }
 
@@ -251,6 +387,7 @@
     if (!confirm(msg)) return;
     state.categories = state.categories.filter(x => x.id !== c.id);
     state.expenses = state.expenses.filter(e => e.categoryId !== c.id);
+    if (filter.catId === c.id) filter.catId = null;
     save(); render(); toast('Category deleted');
   }
 
@@ -339,6 +476,78 @@
       body.appendChild(note);
     }
   }
+
+  // ── note autocomplete ──
+  const suggestBox = $('noteSuggest');
+  let suggestOpen = false;
+
+  function hideSuggestions() {
+    suggestBox.hidden = true;
+    suggestBox.innerHTML = '';
+    suggestOpen = false;
+  }
+
+  function showSuggestions() {
+    const input = $('exNote');
+    const items = noteSuggestions(input.value, $('exCat').value);
+    // Nothing to offer, or the only match is exactly what's typed — stay out of the way.
+    if (!items.length || (items.length === 1 && items[0].note.toLowerCase() === input.value.trim().toLowerCase()))
+      return hideSuggestions();
+
+    suggestBox.innerHTML = '';
+    for (const it of items) {
+      const li = el('li');
+      li.appendChild(el('span', 's-txt', it.note));
+      if (it.cat) li.appendChild(el('span', 's-cat', it.cat));
+      // pointerdown, not click: it fires before the input loses focus, so the tap
+      // isn't swallowed by the list closing on blur.
+      li.addEventListener('pointerdown', ev => {
+        ev.preventDefault();
+        input.value = it.note;
+        hideSuggestions();
+        $('exAmount').focus();
+      });
+      suggestBox.appendChild(li);
+    }
+    suggestBox.hidden = false;
+    suggestOpen = true;
+  }
+
+  $('exNote').addEventListener('focus', showSuggestions);
+  $('exNote').addEventListener('input', showSuggestions);
+  $('exNote').addEventListener('blur', () => setTimeout(hideSuggestions, 120));
+  $('exNote').addEventListener('keydown', ev => {
+    if (ev.key === 'Escape' && suggestOpen) { ev.preventDefault(); hideSuggestions(); }
+  });
+  $('exCat').addEventListener('change', () => { if (suggestOpen) showSuggestions(); });
+
+  // ── search ──
+  $('txSearch').addEventListener('input', ev => {
+    filter.text = ev.target.value;
+    renderTx(); renderChips();
+  });
+  $('txClear').onclick = () => {
+    filter.text = '';
+    $('txSearch').value = '';
+    renderTx(); renderChips();
+  };
+  document.querySelectorAll('.scopebtn').forEach(b => {
+    b.onclick = () => {
+      filter.allMonths = b.dataset.scope === 'all';
+      document.querySelectorAll('.scopebtn').forEach(x => x.classList.toggle('is-on', x === b));
+      renderTx(); renderChips();
+    };
+  });
+
+  // ── category editor ──
+  $('edSave').onclick = saveEditor;
+  $('edCancel').onclick = closeEditor;
+  $('catModal').addEventListener('click', ev => { if (ev.target === $('catModal')) closeEditor(); });
+  $('edBudget').addEventListener('keydown', ev => { if (ev.key === 'Enter') saveEditor(); });
+  $('edName').addEventListener('keydown', ev => { if (ev.key === 'Enter') $('edBudget').focus(); });
+  document.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape' && !$('catModal').hidden) closeEditor();
+  });
 
   // ── storage protection ──
   // iOS clears script-written storage for sites left unopened for ~7 days. Two things
@@ -436,6 +645,7 @@
     save();
     $('exAmount').value = '';
     $('exNote').value = '';
+    hideSuggestions();
     if (monthOf(date) !== month) month = monthOf(date);   // jump to the month you just logged into
     render();
     quietlyAsk();

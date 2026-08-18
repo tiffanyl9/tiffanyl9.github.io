@@ -13,6 +13,9 @@
   }
 }
 *{box-sizing:border-box}
+/* A class that sets `display` outbeats the browser's own rule for [hidden], which
+   would leave things like the edit sheet stuck on screen. Settle it once, here. */
+[hidden]{display:none !important}
 html,body{margin:0;padding:0}
 body{
   background:var(--bg); color:var(--ink);
@@ -182,3 +185,70 @@ button.danger{color:var(--over);border-color:color-mix(in srgb,var(--over) 35%,t
 .statusrow .lbl{flex:1;font-size:14px}
 .statusrow .val{font-size:13px;color:var(--muted);font-weight:550;text-align:right}
 .divider{height:1px;background:var(--line);margin:12px 0}
+
+/* ── note autocomplete ── */
+.notefield{position:relative}
+.suggest{
+  list-style:none;margin:4px 0 0;padding:4px;position:absolute;left:0;right:0;top:100%;
+  z-index:15;background:var(--card);border:1px solid var(--line);border-radius:12px;
+  box-shadow:0 6px 24px rgba(16,18,29,.14);max-height:222px;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+@media (prefers-color-scheme:dark){.suggest{box-shadow:0 6px 24px rgba(0,0,0,.5)}}
+.suggest li{
+  padding:10px 11px;border-radius:8px;cursor:pointer;display:flex;align-items:baseline;gap:8px;
+}
+.suggest li:active,.suggest li.hi{background:var(--track)}
+.suggest .s-txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.suggest .s-cat{font-size:12px;color:var(--muted);flex:none}
+
+/* ── search + tag filter ── */
+.searchbar{margin:0 0 12px}
+.searchwrap{
+  display:flex;align-items:center;gap:8px;padding:0 12px;background:var(--card);
+  border:1px solid var(--line);border-radius:12px;
+}
+.searchwrap:focus-within{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+.searchico{color:var(--muted);font-size:18px;flex:none;line-height:1}
+.searchwrap input{
+  flex:1;min-width:0;border:0;background:none;padding:10px 0;border-radius:0;font-size:16px;
+}
+.searchwrap input:focus{outline:none}
+.clearbtn{
+  flex:none;border:0;background:var(--track);color:var(--muted);width:22px;height:22px;
+  border-radius:99px;font-size:15px;line-height:1;cursor:pointer;padding:0;
+}
+.chips{
+  display:flex;gap:7px;overflow-x:auto;padding:10px 2px 2px;margin:0 -2px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:none;padding:6px 12px;border:1px solid var(--line);border-radius:99px;
+  background:var(--card);font-size:13.5px;font-weight:550;color:var(--muted);
+  cursor:pointer;white-space:nowrap;
+}
+.chip.is-on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip .n{opacity:.65;font-weight:500;margin-left:5px}
+.scoperow{display:flex;gap:6px;margin-top:9px}
+.scopebtn{
+  flex:1;padding:7px;border:1px solid var(--line);border-radius:9px;background:var(--card);
+  font-size:13px;font-weight:550;color:var(--muted);cursor:pointer;
+}
+.scopebtn.is-on{background:var(--track);color:var(--ink);border-color:var(--line)}
+
+/* ── edit-category sheet ── */
+.modal{
+  position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center;
+  background:rgba(10,12,16,.45);padding:0;
+  -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
+}
+.modal .sheet{
+  width:100%;max-width:640px;background:var(--card);
+  border-radius:20px 20px 0 0;padding:18px 16px calc(18px + var(--safe-b));
+  box-shadow:0 -8px 40px rgba(0,0,0,.25);
+  animation:sheetup .22s cubic-bezier(.2,.8,.3,1);
+}
+@keyframes sheetup{from{transform:translateY(18px);opacity:.4}to{transform:none;opacity:1}}
+.modal h3{font-size:17px;font-weight:680;margin:0 0 14px}
+.modal .danger{margin-top:14px}

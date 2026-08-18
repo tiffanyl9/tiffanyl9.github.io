@@ -68,6 +68,26 @@ The Summary tab shows where you stand on all three. Export writes one small `.js
 put it in iCloud Drive and Import will restore it later. Deleting the app from your Home
 Screen, or clearing Safari's data, still erases everything.
 
+## How the smart bits work
+
+**The category dropdown reorders itself.** Every past expense counts as a point toward its
+category, but a point decays by half every three weeks. So what you've been using *lately*
+floats to the top, and something you leaned on months ago sinks even if it has more uses
+overall. Categories you've never used sit at the bottom in the order you created them.
+
+**The note field suggests what you've written before**, ranked the same decaying way, and
+weighted three-to-one toward the category you've currently got selected — pick Groceries
+and you get your shops, pick Eating out and you get your restaurants. Type to narrow it;
+matches at the start of a note rank above matches in the middle.
+
+**Search and tags.** The row above your expenses filters them. Tap a category tag to show
+only those (tap again to clear), and/or type to search notes and category names. While a
+filter is on you can switch between *This month* and *All months* — handy for "when did I
+last buy this?"
+
+To change the three-week half-life, edit `HALF_LIFE_DAYS` near the top of `budget/app.js`.
+A smaller number makes the ordering react faster but jump around more.
+
 ## Changing things
 
 - **Currency**: change `CURRENCY` at the top of `app.js` (e.g. `'GBP'`, `'EUR'`).
