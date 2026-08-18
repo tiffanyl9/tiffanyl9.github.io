@@ -733,9 +733,20 @@
 
   // Offline cache. Needs https:// or localhost — over plain http on your LAN it is
   // skipped and the app simply runs online-only. Everything else still works.
+  const CACHE_NAME = 'budget-v2';   // keep in step with CACHE in sw.js
+
   if ('serviceWorker' in navigator && window.isSecureContext) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW skipped', e));
+      // The worker clears out old caches when it activates, but a version that was
+      // already running can write one afterwards. Sweep up any leftovers here too.
+      if (window.caches) {
+        caches.keys()
+          .then(keys => Promise.all(
+            keys.filter(k => k.startsWith('budget-') && k !== CACHE_NAME).map(k => caches.delete(k))
+          ))
+          .catch(() => {});
+      }
     });
   }
 })();
