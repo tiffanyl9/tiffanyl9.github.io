@@ -17,30 +17,37 @@ anywhere. There isn't a single line of networking code in it.
 | `icons/` | Home screen icons |
 | `serve.sh` | Serves the folder to your phone over Wi-Fi, for testing |
 
-## Test it on your phone right now
+## Getting it on your phone
 
-Your Mac and iPhone must be on the same Wi-Fi.
+The app lives at **https://tiffanyl9.github.io/**
 
-1. On the Mac, run: `./serve.sh`
-2. On the iPhone, open **Safari** (not Chrome) and go to the address it prints,
-   e.g. `http://10.64.187.94:8080`
-3. Tap the **Share** button, then **Add to Home Screen**.
+On your iPhone, open that address in **Safari** (Chrome won't offer the install), tap the
+**Share** button, then **Add to Home Screen**. It gets its own icon and opens full-screen
+with no browser chrome, and works offline from then on.
 
-It now opens full-screen from your home screen with its own icon.
+## Publishing an update
 
-**One catch with this quick method:** the app is being served from your Mac, so it only
-loads while your Mac is on and running `serve.sh`, on your home Wi-Fi. That's fine for
-testing. For everyday use, see below.
+From this folder:
 
-## Making it work everywhere, for free
+    git add -A
+    git commit -m "what changed"
+    git push
 
-Put the files on any free static host — no Apple developer account, no $99.
-Drag this folder onto [app.netlify.com/drop](https://app.netlify.com/drop), or push it to
-a GitHub repo and turn on GitHub Pages. Either gives you an `https://…` address. Add
-*that* to your home screen instead and the app works offline, anywhere, forever.
+GitHub Pages redeploys in a minute or so. On the phone, close the app fully (swipe it away
+from the app switcher) and reopen it to pick up the new version.
 
-Hosting the files publicly does **not** expose your data — the host only ever sees the
-same HTML and JavaScript everyone else gets. Your expenses stay in your phone.
+## Testing on the Mac before you publish
+
+    ./serve.sh
+
+Then open http://localhost:8080 in a browser on this Mac.
+
+## Is publishing it safe?
+
+Yes. The repo is public, so anyone can read the HTML and JavaScript — but that's all there
+is to read. There is no database and no server. Your expenses are written to your phone's
+own local storage and never sent anywhere, so GitHub never sees them, and neither does
+anyone else who visits the page. They just get a blank budgeting app of their own.
 
 ## About your data, and one real warning
 
