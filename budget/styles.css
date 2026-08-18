@@ -66,9 +66,19 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),
   background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:34px}
 .row{display:flex;gap:10px}
 .row .field{flex:1;min-width:0}
-.amountwrap{position:relative}
-.amountwrap .cur{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted)}
-.amountwrap input{padding-left:26px;font-variant-numeric:tabular-nums}
+/* The currency sign sits in the flow rather than floating over the input, so it
+   works whatever the phone's locale calls the currency ($, US$, CHF, kr...). */
+.amountwrap{
+  display:flex;align-items:center;gap:7px;padding:0 12px;
+  border:1px solid var(--line);border-radius:11px;background:var(--bg);
+}
+.amountwrap:focus-within{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+.amountwrap .cur{flex:none;color:var(--muted);white-space:nowrap}
+.amountwrap input{
+  flex:1;min-width:0;padding:11px 0;border:0;background:none;border-radius:0;
+  font-variant-numeric:tabular-nums;
+}
+.amountwrap input:focus{outline:none}
 
 button.primary{
   width:100%;padding:13px;border:0;border-radius:12px;background:var(--accent);
@@ -163,3 +173,12 @@ button.danger{color:var(--over);border-color:color-mix(in srgb,var(--over) 35%,t
   max-width:88vw;text-align:center
 }
 .toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* storage status */
+.statusrow{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--line)}
+.statusrow:last-of-type{border-bottom:0}
+.statusrow .dot{width:9px;height:9px;border-radius:99px;background:var(--muted);flex:none}
+.statusrow .dot.ok{background:var(--good)} .statusrow .dot.no{background:var(--warn)}
+.statusrow .lbl{flex:1;font-size:14px}
+.statusrow .val{font-size:13px;color:var(--muted);font-weight:550;text-align:right}
+.divider{height:1px;background:var(--line);margin:12px 0}

@@ -43,6 +43,7 @@
   // ── state ──
   const seed = () => ({
     version: 1,
+    meta: { lastBackup: null },
     categories: [
       { id: uid(), name: 'Groceries',      budget: 400 },
       { id: uid(), name: 'Eating out',     budget: 150 },
@@ -62,6 +63,7 @@
       if (!raw) return seed();
       const d = JSON.parse(raw);
       if (!d || !Array.isArray(d.categories) || !Array.isArray(d.expenses)) return seed();
+      if (!d.meta) d.meta = { lastBackup: null };   // upgrade older saves
       return d;
     } catch (e) {
       console.warn('Could not read saved data, starting fresh.', e);
@@ -338,6 +340,86 @@
     }
   }
 
+  // ── storage protection ──
+  // iOS clears script-written storage for sites left unopened for ~7 days. Two things
+  // push back on that: launching from the Home Screen (which iOS treats as an installed
+  // app rather than a casual site visit), and the Storage API's persistence grant, where
+  // supported. Neither is an absolute guarantee, so we also nag gently about backups.
+
+  const isInstalled = () =>
+    window.navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+
+  async function refreshStorageStatus() {
+    const dotI = $('dotInstall'), valI = $('valInstall');
+    const dotP = $('dotPersist'), valP = $('valPersist');
+    const note = $('persistNote'), btn = $('persistBtn');
+
+    const installed = isInstalled();
+    dotI.className = 'dot ' + (installed ? 'ok' : 'no');
+    valI.textContent = installed ? 'Yes' : 'Not yet';
+
+    const supported = !!(navigator.storage && navigator.storage.persist);
+    let persisted = false;
+    if (supported) {
+      try { persisted = await navigator.storage.persisted(); } catch (e) { /* ignore */ }
+    }
+
+    if (!supported) {
+      dotP.className = 'dot';
+      valP.textContent = 'Not offered';
+      btn.hidden = true;
+    } else {
+      dotP.className = 'dot ' + (persisted ? 'ok' : 'no');
+      valP.textContent = persisted ? 'Yes' : 'Not granted';
+      btn.hidden = persisted;
+    }
+
+    note.innerHTML = installed
+      ? (persisted || !supported
+          ? 'Running from your Home Screen, which is the setting that matters most here. Your data should stick around — but iOS makes no promise, so keep a backup.'
+          : 'Running from your Home Screen, which is the main protection. Tapping below asks for an extra guarantee on top.')
+      : "You're in a browser tab. Tap Share \u2192 <b>Add to Home Screen</b> and open it from there instead — iOS is far more willing to keep data for an installed app than for a tab.";
+
+    // last backup
+    const last = state.meta && state.meta.lastBackup;
+    const bn = $('backupNote');
+    if (!last) {
+      bn.innerHTML = state.expenses.length
+        ? "<b>You've never made a backup.</b> It saves one small file you can drop in iCloud Drive — the only way to be truly certain nothing is lost."
+        : 'A backup saves one small file you can keep in iCloud Drive or Files, and restore from later.';
+    } else {
+      const days = Math.floor((Date.now() - new Date(last + 'T00:00:00').getTime()) / 86400000);
+      const when = days <= 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`;
+      bn.innerHTML = days >= 30
+        ? `Last backup <b>${when}</b> — worth doing another.`
+        : `Last backup ${when}.`;
+    }
+  }
+
+  async function askForPersistence() {
+    if (!(navigator.storage && navigator.storage.persist)) return;
+    try {
+      const granted = await navigator.storage.persist();
+      toast(granted ? 'Protection granted' : 'iOS declined for now — keep backing up');
+    } catch (e) {
+      toast('Could not request protection');
+    }
+    refreshStorageStatus();
+  }
+
+  // Ask once, quietly, on the first real interaction — browsers are likelier to say yes
+  // to an app the user is actively using than to one that just loaded.
+  let askedOnce = false;
+  function quietlyAsk() {
+    if (askedOnce || !(navigator.storage && navigator.storage.persist)) return;
+    askedOnce = true;
+    navigator.storage.persisted()
+      .then(ok => { if (!ok) return navigator.storage.persist(); })
+      .then(() => refreshStorageStatus())
+      .catch(() => {});
+  }
+
   // ── events ──
   $('curSign').textContent = currencySign;
   $('exDate').value = today();
@@ -356,6 +438,7 @@
     $('exNote').value = '';
     if (monthOf(date) !== month) month = monthOf(date);   // jump to the month you just logged into
     render();
+    quietlyAsk();
     toast(`Added ${fmt(amount)}`);
   });
 
@@ -382,23 +465,33 @@
       document.querySelectorAll('.tab').forEach(b => b.classList.toggle('is-active', b === btn));
       for (const v of ['spend', 'budget', 'summary'])
         $('view-' + v).hidden = v !== btn.dataset.view;
+      if (btn.dataset.view === 'summary') refreshStorageStatus();
       window.scrollTo(0, 0);
     };
   });
 
   // ── backup / restore (stays on the device: share sheet or a normal file save) ──
+  $('persistBtn').onclick = askForPersistence;
+
+  function markBackedUp() {
+    state.meta.lastBackup = today();
+    save();
+    refreshStorageStatus();
+  }
+
   $('exportBtn').onclick = async () => {
     const json = JSON.stringify(state, null, 2);
     const name = `budget-backup-${today()}.json`;
     const file = new File([json], name, { type: 'application/json' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: name }); return; }
+      try { await navigator.share({ files: [file], title: name }); markBackedUp(); return; }
       catch (e) { if (e && e.name === 'AbortError') return; }
     }
     const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
     const a = document.createElement('a');
     a.href = url; a.download = name; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
+    markBackedUp();
     toast('Backup saved');
   };
 
@@ -412,7 +505,8 @@
       if (!d || !Array.isArray(d.categories) || !Array.isArray(d.expenses))
         return toast("That file isn't a budget backup");
       if (!confirm(`Replace everything with this backup? ${d.categories.length} categories, ${d.expenses.length} expenses.`)) return;
-      state = d; save(); render(); toast('Backup restored');
+      if (!d.meta) d.meta = { lastBackup: null };
+      state = d; save(); render(); refreshStorageStatus(); toast('Backup restored');
     } catch (e) {
       toast("Couldn't read that file");
     }
@@ -425,6 +519,7 @@
   };
 
   render();
+  refreshStorageStatus();
 
   // Offline cache. Needs https:// or localhost — over plain http on your LAN it is
   // skipped and the app simply runs online-only. Everything else still works.

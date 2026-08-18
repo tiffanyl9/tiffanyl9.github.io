@@ -9,17 +9,18 @@ anywhere. There isn't a single line of networking code in it.
 
 | File | What it is |
 |---|---|
-| `index.html` | The three screens: Spend, Budget, Summary |
-| `styles.css` | All the styling (adapts to light/dark mode) |
-| `app.js` | All the logic — categories, expenses, totals, backups |
-| `manifest.webmanifest` | Tells iOS the name and icon to use on the home screen |
-| `sw.js` | Caches the app so it opens with no connection |
-| `icons/` | Home screen icons |
-| `serve.sh` | Serves the folder to your phone over Wi-Fi, for testing |
+| `budget/index.html` | The three screens: Spend, Budget, Summary |
+| `budget/styles.css` | All the styling (adapts to light/dark mode) |
+| `budget/app.js` | All the logic — categories, expenses, totals, backups |
+| `budget/manifest.webmanifest` | Tells iOS the name and icon to use on the home screen |
+| `budget/sw.js` | Caches the app so it opens with no connection |
+| `budget/icons/` | Home screen icons |
+| `index.html` | Root of the site — just forwards to `/budget/` |
+| `serve.sh` | Serves the site to your phone over Wi-Fi, for testing |
 
 ## Getting it on your phone
 
-The app lives at **https://tiffanyl9.github.io/**
+The app lives at **https://tiffanyl9.github.io/budget/**
 
 On your iPhone, open that address in **Safari** (Chrome won't offer the install), tap the
 **Share** button, then **Add to Home Screen**. It gets its own icon and opens full-screen
@@ -40,7 +41,7 @@ from the app switcher) and reopen it to pick up the new version.
 
     ./serve.sh
 
-Then open http://localhost:8080 in a browser on this Mac.
+Then open http://localhost:8080/budget/ in a browser on this Mac.
 
 ## Is publishing it safe?
 
@@ -49,17 +50,23 @@ is to read. There is no database and no server. Your expenses are written to you
 own local storage and never sent anywhere, so GitHub never sees them, and neither does
 anyone else who visits the page. They just get a blank budgeting app of their own.
 
-## About your data, and one real warning
+## About your data, and how it's kept
 
-Everything is stored in your browser's local storage on that one device.
+Everything is stored in your browser's local storage, on that one phone. It does not sync
+between devices — that's the trade for it never leaving.
 
-- It does not sync between devices. That's the tradeoff for it never leaving the phone.
-- **iOS can clear it.** Safari wipes stored data for sites you haven't opened in about
-  7 days. Home-screen apps are usually spared, but "usually" is doing real work in that
-  sentence. Use **Summary → Export backup** every so often; it saves a small `.json`
-  file you can put in iCloud Drive, email yourself, or keep in Files. **Import backup**
-  restores it.
-- Deleting the app from your home screen, or clearing Safari data, erases it.
+iOS clears storage for sites you haven't opened in about 7 days. Three things push back:
+
+1. **Add it to the Home Screen and open it from there.** This is the one that really
+   matters. iOS treats a Home Screen app quite differently from a page you visited once.
+2. **Persistent storage.** The app asks iOS for an explicit exemption the first time you
+   log an expense. Support for this is patchy on Safari, so it may come back "Not offered"
+   — that's expected, and not a problem if #1 is done.
+3. **Backups.** The only real guarantee.
+
+The Summary tab shows where you stand on all three. Export writes one small `.json` file —
+put it in iCloud Drive and Import will restore it later. Deleting the app from your Home
+Screen, or clearing Safari's data, still erases everything.
 
 ## Changing things
 

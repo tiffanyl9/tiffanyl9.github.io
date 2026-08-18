@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Budget</title>
+<meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f7f7f8" media="(prefers-color-scheme: light)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Budget">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <button class="monthnav" id="prevMonth" aria-label="Previous month">‹</button>
+  <div class="monthlabel" id="monthLabel">—</div>
+  <button class="monthnav" id="nextMonth" aria-label="Next month">›</button>
+</header>
+
+<main>
+  <!-- ── SPEND ── -->
+  <section class="view" id="view-spend">
+    <form id="expenseForm" class="card">
+      <div class="row">
+        <div class="field amount">
+          <label for="exAmount">Amount</label>
+          <div class="amountwrap">
+            <span class="cur" id="curSign">$</span>
+            <input id="exAmount" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off" required>
+          </div>
+        </div>
+        <div class="field">
+          <label for="exDate">Date</label>
+          <input id="exDate" type="date" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="exCat">Category</label>
+        <select id="exCat" required></select>
+      </div>
+      <div class="field">
+        <label for="exNote">Note <span class="muted">(optional)</span></label>
+        <input id="exNote" type="text" placeholder="Coffee with Sam" autocomplete="off">
+      </div>
+      <button type="submit" class="primary">Add expense</button>
+    </form>
+
+    <h2 class="sectiontitle">This month <span class="count" id="txCount"></span></h2>
+    <ul class="txlist" id="txList"></ul>
+  </section>
+
+  <!-- ── BUDGET ── -->
+  <section class="view" id="view-budget" hidden>
+    <div class="card total" id="totalCard">
+      <div class="totalhead">
+        <span>Total spent</span>
+        <span class="totalfig"><b id="totalSpent">$0</b> <span class="muted">of <span id="totalBudget">$0</span></span></span>
+      </div>
+      <div class="bar"><div class="fill" id="totalFill"></div></div>
+      <div class="totalfoot" id="totalFoot"></div>
+    </div>
+
+    <h2 class="sectiontitle">Categories</h2>
+    <ul class="catlist" id="catList"></ul>
+
+    <form id="catForm" class="card">
+      <div class="field"><label for="catName">New category</label>
+        <input id="catName" type="text" placeholder="Groceries" autocomplete="off" required></div>
+      <div class="field"><label for="catBudget">Monthly budget</label>
+        <input id="catBudget" type="text" inputmode="decimal" placeholder="400" autocomplete="off" required></div>
+      <button type="submit" class="primary">Add category</button>
+    </form>
+  </section>
+
+  <!-- ── SUMMARY ── -->
+  <section class="view" id="view-summary" hidden>
+    <div id="summaryBody"></div>
+    <div class="card">
+      <h3 class="cardtitle">Keeping your data safe</h3>
+      <div class="statusrow">
+        <span class="dot" id="dotInstall"></span>
+        <span class="lbl">Added to Home Screen</span>
+        <span class="val" id="valInstall">checking…</span>
+      </div>
+      <div class="statusrow">
+        <span class="dot" id="dotPersist"></span>
+        <span class="lbl">Protected from auto-cleanup</span>
+        <span class="val" id="valPersist">checking…</span>
+      </div>
+      <p class="muted small" id="persistNote"></p>
+      <button class="ghost" id="persistBtn" hidden style="width:100%">Ask iOS to protect this data</button>
+
+      <div class="divider"></div>
+
+      <p class="muted small" id="backupNote"></p>
+      <div class="btnrow">
+        <button class="ghost" id="exportBtn">Export backup</button>
+        <button class="ghost" id="importBtn">Import backup</button>
+      </div>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+      <button class="danger ghost" id="wipeBtn">Erase everything</button>
+    </div>
+  </section>
+</main>
+
+<nav class="tabbar">
+  <button class="tab is-active" data-view="spend"><span class="ico">＋</span>Spend</button>
+  <button class="tab" data-view="budget"><span class="ico">◔</span>Budget</button>
+  <button class="tab" data-view="summary"><span class="ico">▤</span>Summary</button>
+</nav>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

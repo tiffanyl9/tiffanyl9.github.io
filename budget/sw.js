@@ -1,6 +1,6 @@
 /* Caches the app shell so it opens with no connection. It never fetches anything
    from anywhere but this app's own files, and your data never touches it. */
-const CACHE = 'budget-v1';
+const CACHE = 'budget-v2';
 const SHELL = [
   './', './index.html', './styles.css', './app.js',
   './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-180.png'
