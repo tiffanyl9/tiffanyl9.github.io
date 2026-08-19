@@ -733,7 +733,7 @@
 
   // Offline cache. Needs https:// or localhost — over plain http on your LAN it is
   // skipped and the app simply runs online-only. Everything else still works.
-  const CACHE_NAME = 'budget-v2';   // keep in step with CACHE in sw.js
+  const CACHE_NAME = 'budget-v3';   // keep in step with CACHE in sw.js
 
   if ('serviceWorker' in navigator && window.isSecureContext) {
     window.addEventListener('load', () => {

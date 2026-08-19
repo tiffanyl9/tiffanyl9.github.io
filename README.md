@@ -1,4 +1,4 @@
-# Budget — a private, on-device budgeting app
+# Promontory — a private, on-device budgeting app
 
 A small web app you add to your iPhone home screen. It looks and opens like a normal
 app, but it's just files. There is no account, no sign-in, and no server holding your
@@ -15,6 +15,8 @@ anywhere. There isn't a single line of networking code in it.
 | `budget/manifest.webmanifest` | Tells iOS the name and icon to use on the home screen |
 | `budget/sw.js` | Caches the app so it opens with no connection |
 | `budget/icons/` | Home screen icons |
+| `budget/img/` | The watercolour header (see `CREDITS.md`) |
+| `tools/` | The watercolour filter, if you ever want to change the picture |
 | `index.html` | Root of the site — just forwards to `/budget/` |
 | `serve.sh` | Serves the site to your phone over Wi-Fi, for testing |
 
@@ -71,6 +73,25 @@ iOS clears storage for sites you haven't opened in about 7 days. Three things pu
 The Summary tab shows where you stand on all three. Export writes one small `.json` file —
 put it in iCloud Drive and Import will restore it later. Deleting the app from your Home
 Screen, or clearing Safari's data, still erases everything.
+
+## The look
+
+The app is themed after Promontory Point: cream paper, lake teal, autumn sage, and the
+deep navy of the field house roof, with a watercolour banner across the top.
+
+The banner is a **real photograph** of the Point &mdash; Kim Scarborough's 2005 shot of the
+shoreline in autumn, with the field house tower visible among the trees &mdash; put through a
+watercolour filter rather than drawn or generated. `tools/watercolor.py` does the work:
+it flattens the photograph into simplified washes, darkens the edges where pigment would
+pool, lets the colour bleed slightly past its boundaries, lifts the blacks (paper limits
+how dark watercolour goes), and lays paper grain over the top.
+
+The picture is CC BY-SA, which means the credit has to travel with it and the adapted
+version carries the same licence. Details, and how to swap in a different photograph,
+are in [CREDITS.md](CREDITS.md).
+
+The paper grain everywhere else isn't an image &mdash; it's an inline SVG `feTurbulence`
+filter tiled seamlessly, so it costs no extra download.
 
 ## How the smart bits work
 
